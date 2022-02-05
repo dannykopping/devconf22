@@ -29,6 +29,9 @@ services:
       DB_DATABASE: bagisto
       DB_USERNAME: laravel
       DB_PASSWORD: laravelpassworddb
+    depends_on:
+      db:
+        condition: service_healthy
     logging:
       <<: *logging
 
@@ -59,6 +62,11 @@ services:
       MYSQL_USER: laravel
       MYSQL_PASSWORD: laravelpassworddb
       MYSQL_ROOT_PASSWORD: rootpasswordmysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '--silent']
+      interval: 5s
+      timeout: 1s
+      retries: 30
     volumes:
       - mysql:/var/lib/mysql/
     networks:
