@@ -52,8 +52,6 @@ class CheckoutController extends Controller
         OrderRepository $orderRepository
     )
     {
-        dd("oops");
-
         $this->guard = request()->has('token') ? 'api' : 'customer';
 
         auth()->setDefaultDriver($this->guard);

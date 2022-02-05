@@ -11,10 +11,26 @@ clients:
     tenant_id: tenant1
 
 scrape_configs:
-  - job_name: system
+  - job_name: app
+    pipeline_stages:
+      - regex:
+          expression: '\[(?P<timestamp>[^\]]+)\] \w+\.(?P<level>\w+):'
+      - timestamp:
+          source: timestamp
+          format: 2006-01-02 15:04:05
+          location: Africa/Johannesburg
+      - labels:
+          level:
+      - match:
+          selector: '{job="app"} |= "Event >"'
+          pipeline_name: events
+          action: keep
+          stages:
+            - regex:
+                expression: '.*Event > (?P<event_name>[\w.]+)'
     static_configs:
       - targets:
           - localhost
         labels:
-          job: varlogs
-          __path__: /var/log/*log
+          job: app
+          __path__: /app/logs/*log
