@@ -1,0 +1,246 @@
+version: '3'
+
+x-logging: &logging
+  driver: loki-compose
+  options:
+    loki-url: "http://localhost:3100/loki/api/v1/push"
+    loki-retries: "1"
+    loki-tenant-id: "tenant1"
+
+x-dns: &loki-dns
+  loki:
+    aliases:
+      - loki
+
+services:
+  php:
+    container_name: app
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    working_dir: /var/www/
+    restart: unless-stopped
+    volumes:
+      - ./bagisto:/var/www/
+    networks:
+      - app
+    environment:
+      DB_HOST: db
+      DB_DATABASE: bagisto
+      DB_USERNAME: laravel
+      DB_PASSWORD: laravelpassworddb
+    logging:
+      <<: *logging
+
+  nginx:
+    image: nginx:1.17-alpine
+    ports:
+      - 8000:80
+    volumes:
+      - ./bagisto:/var/www/
+      - ./nginx/:/etc/nginx/conf.d/
+    restart: unless-stopped
+    depends_on:
+      - php
+    networks:
+      - app
+    logging:
+      <<: *logging
+
+  db:
+    image: mariadb:10.3
+    container_name: db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: bagisto
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravelpassworddb
+      MYSQL_ROOT_PASSWORD: rootpasswordmysql
+    volumes:
+      - mysql:/var/lib/mysql/
+    networks:
+      - app
+    logging:
+      <<: *logging
+
+  read:
+    image: grafana/loki:2.4.2
+    command: "-config.file=/etc/loki/config.yaml -target=read"
+    ports:
+      - 3100
+      - 7946
+      - 9095
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml
+    depends_on:
+      - minio
+    networks:
+      <<: *loki-dns
+
+  write:
+    image: grafana/loki:2.4.2
+    command: "-config.file=/etc/loki/config.yaml -target=write"
+    ports:
+      - 3100
+      - 7946
+      - 9095
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml
+    depends_on:
+      - minio
+    networks:
+      <<: *loki-dns
+
+  promtail:
+    image: grafana/promtail:2.4.2
+    volumes:
+      - /var/log:/var/log
+      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - gateway
+    networks:
+      - loki
+    logging:
+      <<: *logging
+
+  minio:
+    image: minio/minio
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /data/loki-data && \
+        mkdir -p /data/loki-ruler && \
+        minio server /data
+    environment:
+      - MINIO_ACCESS_KEY=loki
+      - MINIO_SECRET_KEY=supersecret
+      - MINIO_PROMETHEUS_AUTH_TYPE=public
+      - MINIO_UPDATE=off
+    logging:
+      <<: *logging
+    ports:
+      - 9000
+    volumes:
+      - minio:/data
+    networks:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    logging:
+      <<: *logging
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - gateway
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+          - name: Loki
+            type: loki
+            access: proxy
+            url: http://gateway:3100
+            jsonData:
+              httpHeaderName1: "X-Scope-OrgID"
+            secureJsonData:
+              httpHeaderValue1: "tenant1"
+        EOF
+        /run.sh
+    ports:
+      - "3000:3000"
+    networks:
+      - loki
+
+  gateway:
+    logging:
+      <<: *logging
+    image: nginx:latest
+    depends_on:
+      - read
+      - write
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        cat <<EOF > /etc/nginx/nginx.conf
+        user  nginx;
+        worker_processes  5;  ## Default: 1
+
+        events {
+          worker_connections   1000;
+        }
+
+        http {
+          resolver 127.0.0.11;
+
+          server {
+            listen             3100;
+
+            location = / {
+              return 200 'OK';
+              auth_basic off;
+            }
+
+            location = /ready {
+              proxy_pass       http://write:3100\$$request_uri;
+            }
+
+            location = /metrics {
+              proxy_pass       http://write:3100\$$request_uri;
+            }
+
+            location = /api/prom/push {
+              proxy_pass       http://write:3100\$$request_uri;
+            }
+
+            location = /api/prom/tail {
+              proxy_pass       http://read:3100\$$request_uri;
+              proxy_set_header Upgrade \$$http_upgrade;
+              proxy_set_header Connection "upgrade";
+            }
+
+            location ~ /api/prom/.* {
+              proxy_pass       http://read:3100\$$request_uri;
+            }
+
+            location = /loki/api/v1/push {
+              proxy_pass       http://write:3100\$$request_uri;
+            }
+
+            location = /loki/api/v1/tail {
+              proxy_pass       http://read:3100\$$request_uri;
+              proxy_set_header Upgrade \$$http_upgrade;
+              proxy_set_header Connection "upgrade";
+            }
+
+            location ~ /loki/api/.* {
+              proxy_pass       http://read:3100\$$request_uri;
+            }
+          }
+        }
+        EOF
+        /docker-entrypoint.sh nginx -g "daemon off;"
+    ports:
+      - "3100:3100"
+    networks:
+      - loki
+
+networks:
+  app:
+  loki:
+
+volumes:
+  mysql:
+  minio:
