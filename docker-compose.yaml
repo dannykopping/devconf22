@@ -201,14 +201,6 @@ services:
               auth_basic off;
             }
 
-            location = /ready {
-              proxy_pass       http://write:3100\$$request_uri;
-            }
-
-            location = /metrics {
-              proxy_pass       http://write:3100\$$request_uri;
-            }
-
             location = /api/prom/push {
               proxy_pass       http://write:3100\$$request_uri;
             }
@@ -235,6 +227,22 @@ services:
 
             location ~ /loki/api/.* {
               proxy_pass       http://read:3100\$$request_uri;
+            }
+
+            location /read/ready {
+              proxy_pass       http://read:3100/ready;
+            }
+
+            location /write/ready {
+              proxy_pass       http://write:3100/ready;
+            }
+
+            location /read/metrics {
+              proxy_pass       http://read:3100/metrics;
+            }
+
+            location /write/metrics {
+              proxy_pass       http://write:3100/metrics;
             }
           }
         }
