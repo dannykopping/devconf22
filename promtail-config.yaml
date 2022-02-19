@@ -13,6 +13,9 @@ clients:
 scrape_configs:
   - job_name: app
     pipeline_stages:
+      - multiline:
+          firstline: '^\[([^\]]+)\] \w+\.(\w+):.+$'
+          max_lines: 1024
       - regex:
           expression: '\[(?P<timestamp>[^\]]+)\] \w+\.(?P<level>\w+):'
       - timestamp:
@@ -22,12 +25,12 @@ scrape_configs:
       - labels:
           level:
       - match:
-          selector: '{job="app"} |= "Event >"'
+          selector: '{job="app"} |= "[Event]"'
           pipeline_name: events
           action: keep
           stages:
             - regex:
-                expression: '.*Event > (?P<event_name>[\w.]+)'
+                expression: '.*[Event] (?P<event_name>[\w.]+)'
     static_configs:
       - targets:
           - localhost
