@@ -62,8 +62,8 @@ services:
       MYSQL_PASSWORD: laravelpassworddb
       MYSQL_ROOT_PASSWORD: rootpasswordmysql
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '--silent']
-      interval: 5s
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent', '-ularavel', '-plaravelpassworddb']
+      interval: 1s
       timeout: 1s
       retries: 30
     volumes:
