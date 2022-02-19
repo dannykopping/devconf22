@@ -11,6 +11,8 @@ docker-compose up -d
 # run initial setup
 docker-compose exec php bash -c 'php artisan vendor:publish --all'
 docker-compose exec php bash -c 'php artisan storage:link'
-docker-compose exec php bash -c 'php artisan optimize'
+docker-compose exec php bash -c 'php artisan cache:clear'
+docker-compose exec php bash -c 'php artisan config:clear'
 docker-compose exec php bash -c 'composer dump-autoload'
+docker-compose exec php bash -c 'php artisan optimize'
 docker-compose exec php bash -c 'rm -rf /var/www/public/installer'

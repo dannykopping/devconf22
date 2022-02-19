@@ -50,6 +50,16 @@ services:
     logging:
       <<: *logging
 
+  k6:
+    image: grafana/k6
+    command: 'run /tmp/script.js'
+    volumes:
+      - ./k6/script.js:/tmp/script.js
+    depends_on:
+      - nginx
+    networks:
+      - app
+
   db:
     image: mariadb:10.3
     container_name: db
