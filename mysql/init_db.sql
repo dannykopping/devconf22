@@ -2050,7 +2050,7 @@ CREATE TABLE `customers` (
   UNIQUE KEY `customers_api_token_unique` (`api_token`),
   KEY `customers_customer_group_id_foreign` (`customer_group_id`),
   CONSTRAINT `customers_customer_group_id_foreign` FOREIGN KEY (`customer_group_id`) REFERENCES `customer_groups` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2059,6 +2059,7 @@ CREATE TABLE `customers` (
 
 LOCK TABLES `customers` WRITE;
 /*!40000 ALTER TABLE `customers` DISABLE KEYS */;
+INSERT INTO `customers` VALUES (1,'K6','Tester',NULL,NULL,'k6@example.com',1,'$2y$10$kGiO.R1.gxfSAZJlvehZU.TFJaYli/YEYJLIbhkApLjyBHAiFUmUe',NULL,2,0,NULL,'2022-02-19 21:33:31','2022-02-19 21:33:31',1,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `customers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -4057,4 +4058,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-02-19 14:40:28
+-- Dump completed on 2022-02-19 21:33:34
