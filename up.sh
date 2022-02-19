@@ -9,10 +9,8 @@ docker plugin install grafana/loki-docker-driver:latest --alias loki-compose --g
 docker-compose up -d
 
 # run initial setup
-docker-compose exec php bash -c 'php artisan bagisto:install'
-
-# setup sample categories
-docker-compose exec php bash -c '(echo 3; echo 3; echo 3; echo yes) | php artisan seed:fake:data'
-
-# setup sample products
-docker-compose exec php bash -c '(echo 2; echo 50; echo yes; echo no) | php artisan seed:fake:data'
+docker-compose exec php bash -c 'php artisan vendor:publish --all'
+docker-compose exec php bash -c 'php artisan storage:link'
+docker-compose exec php bash -c 'php artisan optimize'
+docker-compose exec php bash -c 'composer dump-autoload'
+docker-compose exec php bash -c 'rm -rf /var/www/public/installer'
