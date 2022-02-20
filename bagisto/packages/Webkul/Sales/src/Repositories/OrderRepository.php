@@ -65,6 +65,7 @@ class OrderRepository extends Repository
     public function createOrderIfNotThenRetry(array $data)
     {
         DB::beginTransaction();
+        $order = null;
 
         try {
             Event::dispatch('checkout.order.save.before', [$data]);
