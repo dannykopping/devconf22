@@ -38,9 +38,9 @@ services:
         condition: service_started
       grafana:
         condition: service_started
-      db:
-        condition: service_healthy
       nginx:
+        condition: service_started
+      db:
         condition: service_healthy
     logging:
       <<: *logging
@@ -65,14 +65,14 @@ services:
 
   k6:
     image: grafana/k6
-    command: 'run --vus 10 --duration 10s /tmp/script.js'
-    # command: 'run /tmp/script.js'
-    volumes:
-      - ./k6/script.js:/tmp/script.js
+    # command: 'run --vus 10 --iterations 50 -'
+    command: 'run -'
     depends_on:
       - nginx
     networks:
       - app
+    logging:
+      <<: *logging
 
   db:
     image: mariadb:10.3

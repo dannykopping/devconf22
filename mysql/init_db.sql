@@ -3249,7 +3249,7 @@ CREATE TABLE `product_inventories` (
 
 LOCK TABLES `product_inventories` WRITE;
 /*!40000 ALTER TABLE `product_inventories` DISABLE KEYS */;
-INSERT INTO `product_inventories` VALUES (1,10,1,1,0),(2,10,2,1,0),(3,10,3,1,0),(4,10,4,1,0),(5,10,5,1,0),(6,10,6,1,0);
+INSERT INTO `product_inventories` VALUES (1,100,1,1,0),(2,100,2,1,0),(3,100,3,1,0),(4,100,4,1,0),(5,100,5,1,0),(6,100,6,1,0);
 /*!40000 ALTER TABLE `product_inventories` ENABLE KEYS */;
 UNLOCK TABLES;
 
