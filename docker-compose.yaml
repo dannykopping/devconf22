@@ -13,7 +13,7 @@ x-dns: &loki-dns
       - loki
 
 services:
-  php:
+  app:
     container_name: app
     build:
       context: ./php
@@ -30,7 +30,17 @@ services:
       DB_USERNAME: laravel
       DB_PASSWORD: laravelpassworddb
     depends_on:
+      read:
+        condition: service_started
+      write:
+        condition: service_started
+      promtail:
+        condition: service_started
+      grafana:
+        condition: service_started
       db:
+        condition: service_healthy
+      nginx:
         condition: service_healthy
     logging:
       <<: *logging
@@ -43,16 +53,20 @@ services:
       - ./bagisto:/var/www/
       - ./nginx/:/etc/nginx/conf.d/
     restart: unless-stopped
-    depends_on:
-      - php
     networks:
       - app
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "-w1", "localhost", "80"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
     logging:
       <<: *logging
 
   k6:
     image: grafana/k6
-    command: 'run /tmp/script.js'
+    command: 'run --vus 10 --duration 10s /tmp/script.js'
+    # command: 'run /tmp/script.js'
     volumes:
       - ./k6/script.js:/tmp/script.js
     depends_on:
