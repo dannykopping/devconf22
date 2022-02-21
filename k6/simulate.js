@@ -1,20 +1,9 @@
 import http from 'k6/http';
-import { parseHTML } from 'k6/html';
 import { check, fail, sleep } from 'k6';
 
-export const options = {
-  vus: 10,
-  iterations: 50,
-};
-
 export default function () {
-  // let res = http.get('http://nginx/red-tulip');
-  // let doc = parseHTML(res.body);
-  // const csrfToken = doc.find('head meta[name="csrf-token"]').attr("content");
-  // const vuJar = http.cookieJar();
-  // const cookiesForURL = vuJar.cookiesForURL(res.url);
-
-  const email = 'k6-tester1@example.com'
+  const tester = Math.ceil(Math.random() * 10);
+  const email = 'k6-tester' + tester + '@example.com';
   let params = {
     token: true,
     email: email,
@@ -42,7 +31,7 @@ export default function () {
   sleep(Math.random() * 3)
 
   const productId = Math.ceil(Math.random() * 5)
-  const quantity = Math.ceil(Math.random() * 3)
+  const quantity = 1
 
   params = {
     product_id: productId,

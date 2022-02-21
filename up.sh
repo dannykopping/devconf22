@@ -9,7 +9,7 @@ docker plugin install grafana/loki-docker-driver:latest --alias loki-compose --g
 docker-compose up -d app
 
 # create sample users and accounts
-docker-compose run k6 < k6/setup.js
+docker-compose run --rm k6 < k6/setup.js
 
 # run initial setup
 docker-compose exec app bash -c 'composer install -vvv'

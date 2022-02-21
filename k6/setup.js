@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check, fail } from 'k6';
 
 export default function () {
-  for(let i = 0; i < 10; i++) {
+  for(let i = 1; i <= 10; i++) {
     const email = "k6-tester" + i + "@example.com";
     const password = "123456"
     createUser(email, password)
