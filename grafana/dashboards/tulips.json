@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1645514614768,
+  "iteration": 1645516071892,
   "links": [],
   "panels": [
     {
@@ -209,6 +209,78 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "datasource": "MySQL",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null,
+            "filterable": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 7,
+      "options": {
+        "showHeader": true
+      },
+      "pluginVersion": "7.3.6",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "queryType": "randomWalk",
+          "rawQuery": true,
+          "rawSql": "SELECT p.sku, pi.qty, COALESCE(poi.qty, 0) AS orderedQty, (pi.qty - COALESCE(poi.qty, 0)) AS remaining\nFROM product_inventories pi\nLEFT JOIN products p ON pi.product_id = p.id\nLEFT JOIN product_ordered_inventories poi ON pi.product_id = poi.product_id\nORDER BY sku ASC",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "id"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "table": "product_reviews",
+          "timeColumn": "created_at",
+          "timeColumnType": "timestamp",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Inventory by SKU",
+      "type": "table"
     },
     {
       "aliasColors": {},

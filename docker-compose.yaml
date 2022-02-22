@@ -170,6 +170,7 @@ services:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - MYSQL_ROOT_PASSWORD=rootpasswordmysql
     depends_on:
       - gateway
     volumes:
@@ -180,6 +181,7 @@ services:
       - "3000:3000"
     networks:
       - loki
+      - app
 
   gateway:
     logging:

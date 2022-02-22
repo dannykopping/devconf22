@@ -30,7 +30,7 @@ export default function () {
 
   sleep(Math.random() * 30)
 
-  const productId = Math.ceil(Math.random() * 5)
+  const productId = Math.ceil(Math.random() * 6)
   const quantity = Math.ceil(Math.random() * 5)
 
   params = {
