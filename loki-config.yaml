@@ -1,6 +1,8 @@
 ---
 server:
   http_listen_port: 3100
+  grpc_server_max_recv_msg_size: 3.2e+7 # 32MB
+  grpc_server_max_send_msg_size: 3.2e+7 # 32MB
 memberlist:
   join_members:
     - loki:7946
@@ -31,3 +33,9 @@ ruler:
   storage:
     s3:
       bucketnames: loki-ruler
+ingester_client:
+  grpc_client_config:
+    max_send_msg_size: 3.2e+7 # 32MB
+frontend_worker:
+    grpc_client_config:
+        max_send_msg_size: 3.2e+7 # 32MB

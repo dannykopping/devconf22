@@ -15,9 +15,6 @@ class EventServiceProvider extends ServiceProvider
         'user.admin.update-password' => [
             'Webkul\Admin\Listeners\PasswordChange@sendUpdatePasswordMail'
         ],
-        'checkout.order.save.after' => [
-            'Webkul\Admin\Listeners\Order@sendNewOrderMail'
-        ],
         'sales.invoice.save.after' => [
             'Webkul\Admin\Listeners\Order@sendNewInvoiceMail'
         ],

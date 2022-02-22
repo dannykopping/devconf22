@@ -312,6 +312,7 @@ class Cart
             $item->quantity = $quantity;
 
             if (! $this->isItemHaveQuantity($item)) {
+                Event::dispatch('checkout.cart.out_of_stock', $item);
                 throw new Exception(__('shop::app.checkout.cart.quantity.inventory_warning'));
             }
 

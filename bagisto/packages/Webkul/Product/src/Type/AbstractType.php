@@ -2,6 +2,7 @@
 
 namespace Webkul\Product\Type;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Webkul\Attribute\Repositories\AttributeRepository;
 use Webkul\Checkout\Facades\Cart;
@@ -822,6 +823,7 @@ abstract class AbstractType
         $data = $this->getQtyRequest($data);
 
         if (! $this->haveSufficientQuantity($data['quantity'])) {
+            Event::dispatch('checkout.cart.out_of_stock', $this->product->name);
             return trans('shop::app.checkout.cart.quantity.inventory_warning');
         }
 

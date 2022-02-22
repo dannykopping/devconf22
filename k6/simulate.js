@@ -28,10 +28,10 @@ export default function () {
     'JWT token MUST be non-null': (token) => token != null,
   })
 
-  sleep(Math.random() * 3)
+  sleep(Math.random() * 30)
 
   const productId = Math.ceil(Math.random() * 5)
-  const quantity = 1
+  const quantity = Math.ceil(Math.random() * 5)
 
   params = {
     product_id: productId,
@@ -48,6 +48,11 @@ export default function () {
       'Authorization': 'Bearer ' + token,
     }
   });
+
+  // 20% chance of abandoning cart
+  if(Math.random() < 0.2) {
+    return
+  }
 
   // todo: add check
 

@@ -218,6 +218,7 @@ class Booking extends Virtual
         $typeHelper = app($this->bookingHelper->getTypeHelper($bookingProduct->type));
 
         if (! $typeHelper->isSlotAvailable($products)) {
+            Event::dispatch('checkout.cart.out_of_stock', $item);
             return trans('shop::app.checkout.cart.quantity.inventory_warning');
         }
 
