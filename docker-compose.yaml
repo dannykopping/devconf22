@@ -173,6 +173,7 @@ services:
       - MYSQL_ROOT_PASSWORD=rootpasswordmysql
     depends_on:
       - gateway
+      - prometheus
     volumes:
       - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
@@ -265,6 +266,34 @@ services:
     networks:
       - loki
 
+  prometheus:
+    image: prom/prometheus:v2.25.0
+    ports:
+      - 9090:9090
+    depends_on:
+      - sql_exporter
+    volumes:
+      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+      - prometheus:/prometheus
+    networks:
+      - app
+      - loki
+
+  sql_exporter:
+    image: githubfree/sql_exporter:latest
+    ports:
+      - 9399:9399
+    depends_on:
+      - db
+    command:
+      - -config.file=/etc/sql_exporter/sql_exporter.yml
+    volumes:
+      - ./sql_exporter/sql_exporter.yml:/etc/sql_exporter/sql_exporter.yml
+    networks:
+      - app
+    logging:
+      <<: *logging
+
 networks:
   app:
   loki:
@@ -272,3 +301,4 @@ networks:
 volumes:
   mysql:
   minio:
+  prometheus:

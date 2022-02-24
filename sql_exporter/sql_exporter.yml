@@ -1,0 +1,45 @@
+# Global settings and defaults.
+global:
+  # Subtracted from Prometheus' scrape_timeout to give us some headroom and prevent Prometheus from
+  # timing out first.
+  scrape_timeout_offset: 500ms
+  # Minimum interval between collector runs: by default (0s) collectors are executed on every scrape.
+  min_interval: 0s
+  # Maximum number of open connections to any one target. Metric queries will run concurrently on
+  # multiple connections.
+  max_connections: 3
+  # Maximum number of idle connections to any one target.
+  max_idle_connections: 3
+
+target:
+  # sucks that env vars are not interpreted here
+  data_source_name: 'mysql://laravel:laravelpassworddb@tcp(db:3306)/bagisto'
+  collectors: [inventory]
+
+# Collector definition files.
+collectors: 
+  - collector_name: inventory
+    metrics:
+    - metric_name: product_remaining_inventory
+      type: gauge
+      help: 'Current inventory levels'
+      key_labels:
+        - sku
+      static_labels:
+      values: [remaining]
+      query: |
+        SELECT p.sku, (pi.qty - COALESCE(poi.qty, 0)) AS remaining
+        FROM product_inventories pi
+        LEFT JOIN products p ON pi.product_id = p.id
+        LEFT JOIN product_ordered_inventories poi ON pi.product_id = poi.product_id
+    - metric_name: product_total_inventory
+      type: gauge
+      help: 'Total inventory levels'
+      key_labels:
+        - sku
+      static_labels:
+      values: [qty]
+      query: |
+        SELECT p.sku, pi.qty
+        FROM product_inventories pi
+        LEFT JOIN products p ON pi.product_id = p.id
