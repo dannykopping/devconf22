@@ -294,6 +294,15 @@ services:
     logging:
       <<: *logging
 
+  bulb:
+    build: bulb
+    ports:
+      - 5000:80
+    networks:
+      - app
+    logging:
+      <<: *logging
+
 networks:
   app:
   loki:
