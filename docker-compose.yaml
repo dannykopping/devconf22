@@ -272,12 +272,16 @@ services:
       - 9090:9090
     depends_on:
       - sql_exporter
+    command: ['--log.level=debug', '--config.file=/etc/prometheus/prometheus.yml']
     volumes:
       - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
       - prometheus:/prometheus
     networks:
       - app
       - loki
+    logging:
+      <<: *logging
 
   sql_exporter:
     image: githubfree/sql_exporter:latest
@@ -289,6 +293,19 @@ services:
       - -config.file=/etc/sql_exporter/sql_exporter.yml
     volumes:
       - ./sql_exporter/sql_exporter.yml:/etc/sql_exporter/sql_exporter.yml
+    networks:
+      - app
+    logging:
+      <<: *logging
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - 9093:9093
+    command: ['--log.level=debug', '--config.file=/etc/alertmanager/alertmanager.yml']
+    volumes:
+      - ./alertmanager/config.yaml:/etc/alertmanager/alertmanager.yml
+      - alertmanager:/alertmanager
     networks:
       - app
     logging:
@@ -311,3 +328,4 @@ volumes:
   mysql:
   minio:
   prometheus:
+  alertmanager:

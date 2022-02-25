@@ -1,0 +1,16 @@
+groups:
+  - name: Inventory
+    interval: 5s
+    rules:
+      - alert: InventoryLow
+        expr: product_remaining_inventory < 20
+        annotations:
+          summary: Inventory for SKU {{ $labels.sku }} is low
+        labels:
+          app: bagisto
+      - alert: InventoryDepleted
+        expr: product_remaining_inventory == 0
+        annotations:
+          summary: Inventory for SKU {{ $labels.sku }} is depleted
+        labels:
+          app: bagisto
