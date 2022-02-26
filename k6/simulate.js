@@ -157,7 +157,7 @@ export default function () {
   let c = new Checkout()
 
   // spread out the orders a bit
-  // sleep(Math.random() * 30)
+  sleep(Math.random() * 30)
 
   c.addToCart()
 
