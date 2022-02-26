@@ -1,15 +1,9 @@
-global:
-  # The smarthost and SMTP sender used for mail notifications.
-  smtp_smarthost: '172.17.0.1:1025'
-  smtp_from: 'alertmanager@example.org'
-  smtp_require_tls: false
-
 # The root route on which each incoming alert enters.
 route:
   # The root route must not have any matchers as it is the entry point for
   # all alerts. It needs to have a receiver configured so alerts that do not
   # match any of the sub-routes are sent to someone.
-  receiver: 'webhook'
+  receiver: 'none'
 
   # The labels by which incoming alerts are grouped together. For example,
   # multiple alerts coming in for cluster=A and alertname=LatencyHigh would
@@ -21,7 +15,7 @@ route:
   # This way ensures that you get multiple alerts for the same group that start
   # firing shortly after another are batched together on the first
   # notification.
-  group_wait: 30s
+  group_wait: 0s
 
   # When the first notification was sent, wait 'group_interval' to send a batch
   # of new alerts that started firing for that group.
@@ -29,34 +23,25 @@ route:
 
   # If an alert has successfully been sent, wait 'repeat_interval' to
   # resend them.
-  repeat_interval: 1m
+  repeat_interval: 1h
 
   # All the above attributes are inherited by all child routes and can
   # overwritten on each.
 
   # The child route trees.
   routes:
-    # This route handles all alerts coming from a database service. If there's
-    # no team to handle it, it defaults to the DB team.
     - match:
-        app: bagisto
-
-      receiver: webhook
-
-
-# Inhibition rules allow to mute a set of alerts given that another alert is
-# firing.
-# We use this to mute any warning-level notifications if the same alert is
-# already critical.
-#inhibit_rules:
-#  - source_match:
-#      severity: 'critical'
-#    target_match:
-#      severity: 'warning'
-#    # Apply inhibition if the alertname is the same.
-#    equal: ['alertname']
+        severity: warning
+      receiver: webhook-warning
+    - match:
+        severity: critical
+      receiver: webhook-critical
 
 receivers:
-  - name: 'webhook'
+  - name: 'none'
+  - name: 'webhook-warning'
     webhook_configs:
-    - url: http://bulb/?iterations=3
+    - url: http://bulb/warning?iterations=5
+  - name: 'webhook-critical'
+    webhook_configs:
+    - url: http://bulb/critical?iterations=5

@@ -272,6 +272,7 @@ services:
       - 9090:9090
     depends_on:
       - sql_exporter
+      - alertmanager
     command: ['--log.level=debug', '--config.file=/etc/prometheus/prometheus.yml']
     volumes:
       - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
@@ -306,6 +307,8 @@ services:
     volumes:
       - ./alertmanager/config.yaml:/etc/alertmanager/alertmanager.yml
       - alertmanager:/alertmanager
+    depends_on:
+      - bulb
     networks:
       - app
     logging:
