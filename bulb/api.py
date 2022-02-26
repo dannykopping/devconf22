@@ -14,7 +14,7 @@ from flask import Flask, request
 
 plugs = []
 
-async def flash(iterations=10, delay=0.2):
+async def flash(iterations=10, delay=0.2, colour=(255, 255, 255)):
     # Setup the HTTP client API from user-password
     http_api_client = await MerossHttpClient.async_from_user_password(email=EMAIL, password=PASSWORD)
 
@@ -45,15 +45,19 @@ async def flash(iterations=10, delay=0.2):
 
     # Check the current RGB color
     current_color = dev.get_rgb_color()
-    print(f"Currently, device {dev.name} is set to color (RGB) = {current_color}")
-    # Randomly chose a new color
-    rgb = 255, 0, 0  #randint(0, 255), randint(0, 255), randint(0, 255)
+    
     for i in range(iterations):
-        await dev.async_set_light_color(rgb=rgb, luminance=100)
-        time.sleep(delay)
-        await dev.async_set_light_color(rgb=rgb, luminance=1)
+        await dev.async_set_light_color(rgb=colour, luminance=100)
         time.sleep(delay)
 
+        # Only dim if not the last iteration
+        if i < iterations - 1:
+            await dev.async_set_light_color(rgb=colour, luminance=30)
+        
+        time.sleep(delay)
+
+    # Turn off device
+    await dev.async_set_light_color(onoff=False)
     # Close the manager and logout from http_api
     manager.close()
     await http_api_client.async_logout()
@@ -63,21 +67,32 @@ app.config["DEBUG"] = True
 
 loop = asyncio.get_event_loop()
 
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    # if os.name == 'nt':
-#         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+@app.route('/warning', methods=['GET', 'POST'])
+def warning():
     iterations = int(request.args.get("iterations") or 5)
     delay = float(request.args.get("delay") or 0.2)
     
     try:
         loop = asyncio.new_event_loop()
-        loop.run_until_complete(flash(iterations, delay))
+        loop.run_until_complete(flash(iterations, delay, (255, 215, 0)))
         loop.close()
     except RuntimeError as e:
         return e.__str__(), 500
 
     return "bulb flashed", 200
-        
+
+@app.route('/critical', methods=['GET', 'POST'])
+def critical():
+    iterations = int(request.args.get("iterations") or 5)
+    delay = float(request.args.get("delay") or 0.2)
+    
+    try:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(flash(iterations, delay, (255, 0, 0)))
+        loop.close()
+    except RuntimeError as e:
+        return e.__str__(), 500
+
+    return "bulb flashed", 200
 
 app.run(host="0.0.0.0", port=80)
