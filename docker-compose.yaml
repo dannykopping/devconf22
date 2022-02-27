@@ -273,6 +273,7 @@ services:
     depends_on:
       - sql_exporter
       - alertmanager
+      - node_exporter
     command: ['--log.level=debug', '--config.file=/etc/prometheus/prometheus.yml']
     volumes:
       - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
@@ -315,9 +316,28 @@ services:
       <<: *logging
 
   bulb:
-    build: bulb
+    build:
+      context: bulb
+      args:
+        - email=${MEROSS_EMAIL}
+        - password=${MEROSS_PASSWORD}
     ports:
       - 5000:80
+    networks:
+      - app
+    logging:
+      <<: *logging
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    # network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
     networks:
       - app
     logging:

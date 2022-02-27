@@ -1,6 +1,6 @@
 groups:
   - name: Inventory
-    interval: 5s
+    interval: 1s
     rules:
       - alert: InventoryLow
         expr: product_remaining_inventory < 20
