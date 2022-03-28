@@ -13,53 +13,20 @@ x-dns: &loki-dns
       - loki
 
 services:
-  app:
-    container_name: app
-    build:
-      context: ./php
-      dockerfile: Dockerfile
-    working_dir: /var/www/
-    restart: unless-stopped
-    volumes:
-      - ./bagisto:/var/www/
-    networks:
-      - app
-    environment:
-      DB_HOST: db
-      DB_DATABASE: bagisto
-      DB_USERNAME: laravel
-      DB_PASSWORD: laravelpassworddb
+  datatau:
+    image: dannykopping/datatau:latest
+    ports:
+      - 8002:8002
     depends_on:
-      read:
-        condition: service_started
-      write:
-        condition: service_started
-      promtail:
-        condition: service_started
-      grafana:
-        condition: service_started
-      nginx:
-        condition: service_started
       db:
         condition: service_healthy
-    logging:
-      <<: *logging
-
-  nginx:
-    image: nginx:1.17-alpine
-    ports:
-      - 8000:80
-    volumes:
-      - ./bagisto:/var/www/
-      - ./nginx/:/etc/nginx/conf.d/
-    restart: unless-stopped
+    environment:
+      DATABASE_NAME: datatau
+      DATABASE_USER: datatau
+      DATABASE_PASS: datataupass
+      DATABASE_HOST: db
     networks:
       - app
-    healthcheck:
-      test: ["CMD", "nc", "-vz", "-w1", "localhost", "80"]
-      interval: 1s
-      timeout: 1s
-      retries: 30
     logging:
       <<: *logging
 
@@ -68,7 +35,7 @@ services:
     # command: 'run --vus 10 --iterations 50 -'
     command: 'run -'
     depends_on:
-      - nginx
+      - datatau
     networks:
       - app
     logging:
@@ -81,12 +48,12 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_DATABASE: bagisto
-      MYSQL_USER: laravel
-      MYSQL_PASSWORD: laravelpassworddb
+      MYSQL_DATABASE: datatau
+      MYSQL_USER: datatau
+      MYSQL_PASSWORD: datataupass
       MYSQL_ROOT_PASSWORD: rootpasswordmysql
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent', '-ularavel', '-plaravelpassworddb']
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent', '-udatatau', '-pdatataupass']
       interval: 1s
       timeout: 1s
       retries: 30
@@ -130,7 +97,6 @@ services:
     image: grafana/promtail:2.4.2
     volumes:
       - ./loki/promtail-config.yaml:/etc/promtail/config.yaml:ro
-      - ./bagisto/storage/logs/:/app/logs/
     command: -config.file=/etc/promtail/config.yaml
     depends_on:
       - gateway

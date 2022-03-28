@@ -11,7 +11,7 @@ datasources:
   - name: MySQL
     type: mysql
     url: db:3306
-    database: bagisto
+    database: datatau
     user: root
     jsonData:
       maxOpenConns: 0 # Grafana v5.4+
