@@ -16,7 +16,7 @@ services:
   datatau:
     image: dannykopping/datatau:latest
     ports:
-      - 8002:8002
+      - 8002:80
     depends_on:
       db:
         condition: service_healthy
