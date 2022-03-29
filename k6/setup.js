@@ -4,8 +4,8 @@ import { parseHTML } from 'k6/html';
 
 export default function () {
   for(let i = 1; i <= 10; i++) {
-    const username = 'tester' + i;
-    const email = "k6-tester" + i + "@example.com";
+    const username = 'k6tester' + i;
+    const email = "k6tester" + i + "@example.com";
     const password = "123456"
     createUser(username, email, password)
   }

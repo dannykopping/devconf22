@@ -1,174 +1,101 @@
-import http from 'k6/http';
+import http, { post } from 'k6/http';
+import { parseHTML } from 'k6/html';
 import { check, fail, sleep } from 'k6';
+import { Faker } from "k6/x/faker"
 
 class RandomUser {
   constructor() {
     const tester = Math.ceil(Math.random() * 10)
 
     // these tester accounts are setup in k6/setup.js
-    this.email = 'k6-tester' + tester + '@example.com'
-    this.password = '123456'
+    this.username = 'k6tester' + tester;
+    this.email = this.username + '@example.com';
+    this.password = '123456';
   }
 
   login() {
-    const params = {
-      token: true,
-      email: this.email,
-      password: '123456',
+    let page = http.get("http://datatau/accounts/login");
+  
+    let res = page.submitForm({
+      formSelector: 'form[action="/accounts/login/check_login"]',
+      fields: {
+        username: this.username,
+        password: this.password,
+      }
+    });
+
+    let result = parseHTML(res.body);
+    let username = result.find('#me').html();
+
+    check(username, {
+      [username + ' logged in successfully']: (username) => username == this.username,
+    })
+  }
+
+  createPost() {
+    let f = new Faker();
+    let page = http.get("http://datatau/submit");
+  
+    let res = page.submitForm({
+      fields: {
+        title: randomTitle(),
+        url: f.url(),
+      }
+    });
+  }
+
+  vote() {
+    let page = http.get("http://datatau/");
+    let body = parseHTML(page.body);
+  
+    let posts = body.find('div.votearrow');
+    if(posts.size() <= 0) {
+      console.log("cannot find a post to upvote")
+      return
     }
 
-    const headers = {
-      'Accept': 'application/json',
+    const post = posts.get(Math.floor(Math.random() * posts.size())).getAttribute('data-post-id');
+    if(post == "") {
+      console.log("cannot find a post to upvote")
+      return
     }
 
-    let res = http.post("http://nginx/api/customer/login", params, { headers: headers });
-    check(res, {
-      'JWT token retrieval MUST succeed': (res) => res.status == 200,
-    })
+    const vuJar = http.cookieJar();
+    const cookiesForURL = vuJar.cookiesForURL(page.url);
 
-    let token = null
-    try {
-      token = JSON.parse(res.body).token
-    } catch (e) { }
-
-    check(token, {
-      'JWT token MUST be non-null': (token) => token != null,
-    })
-
-    return token
+    const vote = JSON.stringify({
+      id: post,
+    });
+    let res = http.post("http://datatau/upvote-post", vote, {
+      headers: {
+        'X-CSRFToken': cookiesForURL.csrftoken,
+        'Content-Type': 'application/json'
+      },
+    });
+    
+    console.log(res.status, res.body)
   }
 }
 
-class Checkout {
-  constructor() {
-    this.user = new RandomUser()
-    this.getToken()
-  }
-
-  getToken() {
-    this.token = this.user.login()
-    if (this.token == null) {
-      throw new Error("cannot retrieve token")
-    }
-  }
-
-  addToCart() {
-    const productId = Math.ceil(Math.random() * 6)
-    const quantity = Math.ceil(Math.random() * 5)
-
-    const params = {
-      product_id: productId,
-      quantity: quantity,
-    }
-    const res = http.post("http://nginx/api/checkout/cart/add/" + productId, params, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    });
-    check(res, {
-      'Item must be added to the cart successfully': (res) => res.status == 200,
-    })
-  }
-
-  saveAddress() {
-    let res = http.get("http://nginx/api/addresses?token=true", {
-      headers: {
-        'Accept': 'application/json',
-        // for some reason this endpoint doesn't use the token in the session
-        'Authorization': 'Bearer ' + this.token,
-      }
-    });
-    check(res, {
-      'Address list must be retrieved successfully': (res) => res.status == 200,
-    })
-
-    const address = JSON.parse(res.body)
-    let params = {
-      "billing": {
-        "address1": {
-          "0": ""
-        },
-        "use_for_shipping": false,
-        "first_name": "Tester",
-        "last_name": "McNifty",
-        "email": this.email,
-        "address_id": address.data[0].id,
-      },
-      "shipping": {
-        "address1": {
-          "0": ""
-        },
-        "first_name": "Tester",
-        "last_name": "McNifty",
-        "email": this.email,
-        "address_id": address.data[0].id,
-      },
-    }
-
-    res = http.post("http://nginx/api/checkout/save-address", JSON.stringify(params), {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    });
-    check(res, {
-      'Address must be saved to the cart successfully': (res) => res.status == 200,
-    })
-  }
-
-  saveShippingMethod() {
-    // the cart we're referring to is in the session, so no token is required
-    const res = http.post("http://nginx/api/checkout/save-shipping", JSON.stringify({ shipping_method: 'free_free' }), {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    });
-    check(res, {
-      'Shipping method must be saved to the cart successfully': (res) => res.status == 200,
-    })
-  }
-
-  savePaymentMethod() {
-    const res = http.post("http://nginx/api/checkout/save-payment", JSON.stringify({ payment: { method: "cashondelivery" } }), {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    });
-    check(res, {
-      'Payment method must be saved to the cart successfully': (res) => res.status == 200,
-    })
-  }
-
-  placeOrder() {
-    const res = http.post("http://nginx/api/checkout/save-order", {}, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    });
-    check(res, {
-      'Order must be placed successfully': (res) => res.status == 200,
-    })
+export function randomTitle() {
+  let f = new Faker();
+  const seed = Math.ceil(Math.random() * 10);
+  console.log(seed)
+  switch(true) {
+    case seed < 3:
+      return f.quote()
+    case seed < 6:
+      return f.sentence(Math.ceil(Math.random() * 10))
+    default:
+      return f.question()
   }
 }
 
 export default function () {
-  let c = new Checkout()
-
-  // spread out the orders a bit
-  sleep(Math.random() * 30)
-
-  c.addToCart()
-
-  // 20% chance of abandoning cart
-  if (Math.random() <= 0.2) {
-    console.log("abandoned cart")
-    return
+  let r = new RandomUser()
+  r.login()
+  r.createPost()
+  for(let i = 0; i < 5; i++) {
+    r.vote()
   }
-
-  c.saveAddress()
-  c.saveShippingMethod()
-  c.savePaymentMethod()
-  c.placeOrder()
 }
