@@ -13,33 +13,36 @@ global:
 
 target:
   # sucks that env vars are not interpreted here
-  data_source_name: 'mysql://laravel:laravelpassworddb@tcp(db:3306)/bagisto'
-  collectors: [inventory]
+  data_source_name: 'mysql://datatau:datataupass@tcp(db:3306)/datatau'
+  collectors: [slackernews]
 
 # Collector definition files.
 collectors: 
-  - collector_name: inventory
+  - collector_name: slackernews
     metrics:
-    - metric_name: product_remaining_inventory
+    - metric_name: posts
       type: gauge
-      help: 'Current inventory levels'
-      key_labels:
-        - sku
-      static_labels:
-      values: [remaining]
+      help: 'Number of posts'
+      values: [value]
       query: |
-        SELECT p.sku, (pi.qty - COALESCE(poi.qty, 0)) AS remaining
-        FROM product_inventories pi
-        LEFT JOIN products p ON pi.product_id = p.id
-        LEFT JOIN product_ordered_inventories poi ON pi.product_id = poi.product_id
-    - metric_name: product_total_inventory
+        SELECT count(*) AS value FROM app_post
+    - metric_name: posts_by_user
       type: gauge
-      help: 'Total inventory levels'
+      help: 'Number of posts per user'
       key_labels:
-        - sku
+        - user_id
       static_labels:
-      values: [qty]
+      values: [val]
       query: |
-        SELECT p.sku, pi.qty
-        FROM product_inventories pi
-        LEFT JOIN products p ON pi.product_id = p.id
+        SELECT user_id, count(*) AS val FROM app_post
+        GROUP BY user_id
+    - metric_name: votes_by_user
+      type: gauge
+      help: 'Number of votes per user'
+      key_labels:
+        - user_id
+      static_labels:
+      values: [val]
+      query: |
+        SELECT user_id, count(*) AS val FROM app_postvotetracking
+        GROUP BY user_id

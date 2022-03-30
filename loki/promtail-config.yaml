@@ -11,29 +11,11 @@ clients:
     tenant_id: tenant1
 
 scrape_configs:
-  - job_name: app
-    pipeline_stages:
-      - multiline:
-          firstline: '^\[([^\]]+)\] \w+\.(\w+):.+$'
-          max_lines: 1024
-      - regex:
-          expression: '\[(?P<timestamp>[^\]]+)\] \w+\.(?P<level>\w+):'
-      - timestamp:
-          source: timestamp
-          format: 2006-01-02 15:04:05
-          location: Etc/UTC
-      - labels:
-          level:
-      - match:
-          selector: '{job="app"} |= "[Event]"'
-          pipeline_name: events
-          action: keep
-          stages:
-            - regex:
-                expression: '.*[Event] (?P<event_name>[\w.]+)'
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: app
-          __path__: /app/logs/*log
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'

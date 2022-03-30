@@ -1,12 +1,5 @@
 version: '3'
 
-x-logging: &logging
-  driver: loki-compose
-  options:
-    loki-url: "http://localhost:3100/loki/api/v1/push"
-    loki-retries: "1"
-    loki-tenant-id: "tenant1"
-
 x-dns: &loki-dns
   loki:
     aliases:
@@ -14,6 +7,7 @@ x-dns: &loki-dns
 
 services:
   datatau:
+    container_name: datatau
     image: dannykopping/datatau:latest
     ports:
       - 8002:80
@@ -27,10 +21,9 @@ services:
       DATABASE_HOST: db
     networks:
       - app
-    logging:
-      <<: *logging
 
   k6:
+    container_name: k6
     build:
       context: k6
     # command: 'run --vus 10 --iterations 50 -'
@@ -39,12 +32,10 @@ services:
       - datatau
     networks:
       - app
-    logging:
-      <<: *logging
 
   db:
-    image: mariadb:10.3
     container_name: db
+    image: mariadb:10.3
     tty: true
     ports:
       - "3306:3306"
@@ -63,11 +54,10 @@ services:
       - ./mysql/init_db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app
-    logging:
-      <<: *logging
 
   read:
-    image: grafana/loki:2.4.2
+    container_name: loki-read
+    image: grafana/loki:k88-c660a7e
     command: "-config.file=/etc/loki/config.yaml -target=read"
     ports:
       - 3100
@@ -81,7 +71,8 @@ services:
       <<: *loki-dns
 
   write:
-    image: grafana/loki:2.4.2
+    container_name: loki-write
+    image: grafana/loki:k88-c660a7e
     command: "-config.file=/etc/loki/config.yaml -target=write"
     ports:
       - 3100
@@ -95,18 +86,19 @@ services:
       <<: *loki-dns
 
   promtail:
-    image: grafana/promtail:2.4.2
+    container_name: promtail
+    image: grafana/promtail:k88-c660a7e
     volumes:
       - ./loki/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yaml
     depends_on:
       - gateway
     networks:
       - loki
-    logging:
-      <<: *logging
 
   minio:
+    container_name: minio
     image: minio/minio
     entrypoint:
       - sh
@@ -120,8 +112,6 @@ services:
       - MINIO_SECRET_KEY=supersecret
       - MINIO_PROMETHEUS_AUTH_TYPE=public
       - MINIO_UPDATE=off
-    logging:
-      <<: *logging
     ports:
       - 9000
     volumes:
@@ -130,9 +120,8 @@ services:
       - loki
 
   grafana:
+    container_name: grafana
     image: grafana/grafana:8.2.6
-    logging:
-      <<: *logging
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -141,6 +130,7 @@ services:
     depends_on:
       - gateway
       - prometheus
+      - promtail
     volumes:
       - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
@@ -152,8 +142,7 @@ services:
       - app
 
   gateway:
-    logging:
-      <<: *logging
+    container_name: loki-gateway
     image: nginx:latest
     depends_on:
       - read
@@ -234,6 +223,7 @@ services:
       - loki
 
   prometheus:
+    container_name: prometheus
     image: prom/prometheus:v2.25.0
     ports:
       - 9090:9090
@@ -249,10 +239,9 @@ services:
     networks:
       - app
       - loki
-    logging:
-      <<: *logging
 
   sql_exporter:
+    container_name: sql_exporter
     image: githubfree/sql_exporter:latest
     ports:
       - 9399:9399
@@ -264,10 +253,9 @@ services:
       - ./sql_exporter/sql_exporter.yml:/etc/sql_exporter/sql_exporter.yml
     networks:
       - app
-    logging:
-      <<: *logging
 
   alertmanager:
+    container_name: alertmanager
     image: prom/alertmanager:latest
     ports:
       - 9093:9093
@@ -279,10 +267,9 @@ services:
       - bulb
     networks:
       - app
-    logging:
-      <<: *logging
 
   bulb:
+    container_name: bulb
     build:
       context: bulb
       args:
@@ -292,10 +279,9 @@ services:
       - 5000:80
     networks:
       - app
-    logging:
-      <<: *logging
 
   node_exporter:
+    container_name: node_exporter
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
     command:
@@ -307,8 +293,6 @@ services:
       - '/:/host:ro,rslave'
     networks:
       - app
-    logging:
-      <<: *logging
 
 networks:
   app:
