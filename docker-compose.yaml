@@ -1,113 +1,104 @@
 version: '3'
 
-x-logging: &logging
-  driver: loki-compose
-  options:
-    loki-url: "http://localhost:3100/loki/api/v1/push"
-    loki-retries: "1"
-    loki-tenant-id: "tenant1"
-
 x-dns: &loki-dns
   loki:
     aliases:
       - loki
 
 services:
-  php:
-    container_name: app
-    build:
-      context: ./php
-      dockerfile: Dockerfile
-    working_dir: /var/www/
-    restart: unless-stopped
-    volumes:
-      - ./bagisto:/var/www/
-    networks:
-      - app
-    environment:
-      DB_HOST: db
-      DB_DATABASE: bagisto
-      DB_USERNAME: laravel
-      DB_PASSWORD: laravelpassworddb
-    logging:
-      <<: *logging
-
-  nginx:
-    image: nginx:1.17-alpine
+  datatau:
+    container_name: datatau
+    image: dannykopping/datatau:latest
     ports:
-      - 8000:80
-    volumes:
-      - ./bagisto:/var/www/
-      - ./nginx/:/etc/nginx/conf.d/
-    restart: unless-stopped
+      - 8002:80
     depends_on:
-      - php
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_NAME: datatau
+      DATABASE_USER: datatau
+      DATABASE_PASS: datataupass
+      DATABASE_HOST: db
     networks:
       - app
-    logging:
-      <<: *logging
+
+  k6:
+    container_name: k6
+    build:
+      context: k6
+    # command: 'run --vus 10 --iterations 50 -'
+    command: 'run -'
+    depends_on:
+      - datatau
+    networks:
+      - app
 
   db:
-    image: mariadb:10.3
     container_name: db
-    restart: unless-stopped
+    image: mariadb:10.3
     tty: true
     ports:
       - "3306:3306"
     environment:
-      MYSQL_DATABASE: bagisto
-      MYSQL_USER: laravel
-      MYSQL_PASSWORD: laravelpassworddb
+      MYSQL_DATABASE: datatau
+      MYSQL_USER: datatau
+      MYSQL_PASSWORD: datataupass
       MYSQL_ROOT_PASSWORD: rootpasswordmysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent', '-udatatau', '-pdatataupass']
+      interval: 1s
+      timeout: 1s
+      retries: 30
     volumes:
       - mysql:/var/lib/mysql/
+      - ./mysql/init_db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app
-    logging:
-      <<: *logging
 
   read:
-    image: grafana/loki:2.4.2
+    container_name: loki-read
+    image: grafana/loki:k88-c660a7e
     command: "-config.file=/etc/loki/config.yaml -target=read"
     ports:
       - 3100
       - 7946
       - 9095
     volumes:
-      - ./loki-config.yaml:/etc/loki/config.yaml
+      - ./loki/loki-config.yaml:/etc/loki/config.yaml
     depends_on:
       - minio
     networks:
       <<: *loki-dns
 
   write:
-    image: grafana/loki:2.4.2
+    container_name: loki-write
+    image: grafana/loki:k88-c660a7e
     command: "-config.file=/etc/loki/config.yaml -target=write"
     ports:
       - 3100
       - 7946
       - 9095
     volumes:
-      - ./loki-config.yaml:/etc/loki/config.yaml
+      - ./loki/loki-config.yaml:/etc/loki/config.yaml
     depends_on:
       - minio
     networks:
       <<: *loki-dns
 
   promtail:
-    image: grafana/promtail:2.4.2
+    container_name: promtail
+    image: grafana/promtail:k88-c660a7e
     volumes:
-      - /var/log:/var/log
-      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - ./loki/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yaml
     depends_on:
       - gateway
     networks:
       - loki
-    logging:
-      <<: *logging
 
   minio:
+    container_name: minio
     image: minio/minio
     entrypoint:
       - sh
@@ -121,8 +112,6 @@ services:
       - MINIO_SECRET_KEY=supersecret
       - MINIO_PROMETHEUS_AUTH_TYPE=public
       - MINIO_UPDATE=off
-    logging:
-      <<: *logging
     ports:
       - 9000
     volumes:
@@ -131,41 +120,29 @@ services:
       - loki
 
   grafana:
-    image: grafana/grafana:latest
-    logging:
-      <<: *logging
+    container_name: grafana
+    image: grafana/grafana:8.2.6
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - MYSQL_ROOT_PASSWORD=rootpasswordmysql
     depends_on:
       - gateway
-    entrypoint:
-      - sh
-      - -euc
-      - |
-        mkdir -p /etc/grafana/provisioning/datasources
-        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
-        apiVersion: 1
-        datasources:
-          - name: Loki
-            type: loki
-            access: proxy
-            url: http://gateway:3100
-            jsonData:
-              httpHeaderName1: "X-Scope-OrgID"
-            secureJsonData:
-              httpHeaderValue1: "tenant1"
-        EOF
-        /run.sh
+      - prometheus
+      - promtail
+    volumes:
+      - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./grafana/dashboards:/etc/grafana/dashboards/
     ports:
       - "3000:3000"
     networks:
       - loki
+      - app
 
   gateway:
-    logging:
-      <<: *logging
+    container_name: loki-gateway
     image: nginx:latest
     depends_on:
       - read
@@ -191,14 +168,6 @@ services:
             location = / {
               return 200 'OK';
               auth_basic off;
-            }
-
-            location = /ready {
-              proxy_pass       http://write:3100\$$request_uri;
-            }
-
-            location = /metrics {
-              proxy_pass       http://write:3100\$$request_uri;
             }
 
             location = /api/prom/push {
@@ -228,6 +197,22 @@ services:
             location ~ /loki/api/.* {
               proxy_pass       http://read:3100\$$request_uri;
             }
+
+            location /read/ready {
+              proxy_pass       http://read:3100/ready;
+            }
+
+            location /write/ready {
+              proxy_pass       http://write:3100/ready;
+            }
+
+            location /read/metrics {
+              proxy_pass       http://read:3100/metrics;
+            }
+
+            location /write/metrics {
+              proxy_pass       http://write:3100/metrics;
+            }
           }
         }
         EOF
@@ -237,6 +222,78 @@ services:
     networks:
       - loki
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.25.0
+    ports:
+      - 9090:9090
+    depends_on:
+      - sql_exporter
+      - alertmanager
+      - node_exporter
+    command: ['--log.level=debug', '--config.file=/etc/prometheus/prometheus.yml']
+    volumes:
+      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus:/prometheus
+    networks:
+      - app
+      - loki
+
+  sql_exporter:
+    container_name: sql_exporter
+    image: githubfree/sql_exporter:latest
+    ports:
+      - 9399:9399
+    depends_on:
+      - db
+    command:
+      - -config.file=/etc/sql_exporter/sql_exporter.yml
+    volumes:
+      - ./sql_exporter/sql_exporter.yml:/etc/sql_exporter/sql_exporter.yml
+    networks:
+      - app
+
+  alertmanager:
+    container_name: alertmanager
+    image: prom/alertmanager:latest
+    ports:
+      - 9093:9093
+    command: ['--log.level=debug', '--config.file=/etc/alertmanager/alertmanager.yml']
+    volumes:
+      - ./alertmanager/config.yaml:/etc/alertmanager/alertmanager.yml
+      - alertmanager:/alertmanager
+    depends_on:
+      - bulb
+    networks:
+      - app
+
+  bulb:
+    container_name: bulb
+    build:
+      context: bulb
+      args:
+        - email=${MEROSS_EMAIL}
+        - password=${MEROSS_PASSWORD}
+    ports:
+      - 5000:80
+    networks:
+      - app
+
+  node_exporter:
+    container_name: node_exporter
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    # network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+    networks:
+      - app
+
 networks:
   app:
   loki:
@@ -244,3 +301,5 @@ networks:
 volumes:
   mysql:
   minio:
+  prometheus:
+  alertmanager:

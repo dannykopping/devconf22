@@ -1,0 +1,48 @@
+# Global settings and defaults.
+global:
+  # Subtracted from Prometheus' scrape_timeout to give us some headroom and prevent Prometheus from
+  # timing out first.
+  scrape_timeout_offset: 500ms
+  # Minimum interval between collector runs: by default (0s) collectors are executed on every scrape.
+  min_interval: 0s
+  # Maximum number of open connections to any one target. Metric queries will run concurrently on
+  # multiple connections.
+  max_connections: 3
+  # Maximum number of idle connections to any one target.
+  max_idle_connections: 3
+
+target:
+  # sucks that env vars are not interpreted here
+  data_source_name: 'mysql://datatau:datataupass@tcp(db:3306)/datatau'
+  collectors: [slackernews]
+
+# Collector definition files.
+collectors: 
+  - collector_name: slackernews
+    metrics:
+    - metric_name: posts
+      type: gauge
+      help: 'Number of posts'
+      values: [value]
+      query: |
+        SELECT count(*) AS value FROM app_post
+    - metric_name: posts_by_user
+      type: gauge
+      help: 'Number of posts per user'
+      key_labels:
+        - user_id
+      static_labels:
+      values: [val]
+      query: |
+        SELECT user_id, count(*) AS val FROM app_post
+        GROUP BY user_id
+    - metric_name: votes_by_user
+      type: gauge
+      help: 'Number of votes per user'
+      key_labels:
+        - user_id
+      static_labels:
+      values: [val]
+      query: |
+        SELECT user_id, count(*) AS val FROM app_postvotetracking
+        GROUP BY user_id

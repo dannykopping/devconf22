@@ -1,33 +1,9 @@
 # Setup
 
-## Docker
+Run `./up.sh`
 
-Build the PHP container:
-
-```bash
-docker-compose build --build-arg user=$(whoami) --build-arg uid=$(id -u)
-```
-
-Install the docker driver for Loki:
-```bash
-docker plugin install grafana/loki-docker-driver:latest --alias loki-compose --grant-all-permissions
-```
-
-Then start up all the services:
-
-```bash
-docker-compose up -d
-```
-
-## Application
-
-Setup the application:
-
-```bash
-docker-compose exec php bash -c 'php artisan bagisto:install'
-```
-
-### Services
+# Services
 
 - Shop: http://localhost:8000/
+- Admin: http://localhost:8000/admin (admin@example.com:admin123)
 - Grafana: http://localhost:3000/

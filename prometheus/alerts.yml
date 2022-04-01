@@ -1,0 +1,19 @@
+groups:
+  - name: SlackerNews
+    interval: 1s
+    rules:
+
+      - alert: Excessive Posting
+        expr: increase(posts_by_user[1m]) >= 5
+        annotations:
+          summary: "{{ $labels.user_id }} has posted {{ $value }} posts in the last minute"
+        labels:
+          severity: warning
+
+      - alert: SQL Exporter Down
+        expr: up{job="sql_exporter"} < 1
+        for: 5s
+        annotations:
+          summary: SQL Exporter is currently not running
+        labels:
+          severity: critical
