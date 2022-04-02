@@ -6,8 +6,8 @@ x-dns: &loki-dns
       - loki
 
 services:
-  datatau:
-    container_name: datatau
+  slackernews:
+    container_name: slackernews
     image: dannykopping/datatau:latest
     ports:
       - 8002:80
@@ -15,9 +15,9 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_NAME: datatau
-      DATABASE_USER: datatau
-      DATABASE_PASS: datataupass
+      DATABASE_NAME: slackernews
+      DATABASE_USER: slackernews
+      DATABASE_PASS: slackernewspass
       DATABASE_HOST: db
     networks:
       - app
@@ -29,7 +29,7 @@ services:
     # command: 'run --vus 10 --iterations 50 -'
     command: 'run -'
     depends_on:
-      - datatau
+      - slackernews
     networks:
       - app
 
@@ -40,12 +40,12 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_DATABASE: datatau
-      MYSQL_USER: datatau
-      MYSQL_PASSWORD: datataupass
+      MYSQL_DATABASE: slackernews
+      MYSQL_USER: slackernews
+      MYSQL_PASSWORD: slackernewspass
       MYSQL_ROOT_PASSWORD: rootpasswordmysql
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent', '-udatatau', '-pdatataupass']
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent', '-uslackernews', '-pslackernewspass']
       interval: 1s
       timeout: 1s
       retries: 30

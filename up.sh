@@ -4,7 +4,7 @@
 # docker plugin install grafana/loki-docker-driver:latest --alias loki-compose --grant-all-permissions
 
 # bring up all services
-docker-compose up -d datatau grafana
+docker-compose up -d slackernews grafana
 
 sleep 2
 

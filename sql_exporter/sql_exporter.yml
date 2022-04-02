@@ -13,7 +13,7 @@ global:
 
 target:
   # sucks that env vars are not interpreted here
-  data_source_name: 'mysql://datatau:datataupass@tcp(db:3306)/datatau'
+  data_source_name: 'mysql://slackernews:slackernewspass@tcp(db:3306)/slackernews'
   collectors: [slackernews]
 
 # Collector definition files.
