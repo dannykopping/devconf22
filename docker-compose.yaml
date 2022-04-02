@@ -26,7 +26,8 @@ services:
     container_name: k6
     build:
       context: k6
-    # command: 'run --vus 10 --iterations 50 -'
+    volumes:
+      - ./k6:/app
     command: 'run -'
     depends_on:
       - slackernews

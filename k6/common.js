@@ -3,18 +3,38 @@ import { parseHTML } from 'k6/html';
 import { check, fail, sleep } from 'k6';
 import { Faker } from "k6/x/faker"
 
-class RandomUser {
-  constructor() {
-    const tester = Math.ceil(Math.random() * 10)
+export class User {
+  constructor(username, email, password) {
+    this.username = username;
+    this.email = email;
+    this.password = password;
+  }
 
-    // these tester accounts are setup in k6/setup.js
-    this.username = 'k6tester' + tester;
-    this.email = this.username + '@example.com';
-    this.password = '123456';
+  register() {
+    let page = http.get("http://slackernews/accounts/login");
+  
+    let res = page.submitForm({
+      formSelector: 'form[action="/accounts/login/check_signup"]',
+      fields: {
+        username: this.username,
+        email: this.email,
+        password: this.password,
+      }
+    });
+  
+    let result = parseHTML(res.body);
+    let errors = result.find('div.errors').last().text();
+    if(errors != "") {
+      console.error(errors, this.email)
+    }
+  
+    check(res, {
+      [this.email + ' was created successfully']: (res) => res.status == 200 && errors == "",
+    })
   }
 
   login() {
-    let page = http.get("http://datatau/accounts/login");
+    let page = http.get("http://slackernews/accounts/login");
   
     let res = page.submitForm({
       formSelector: 'form[action="/accounts/login/check_login"]',
@@ -34,7 +54,7 @@ class RandomUser {
 
   createPost() {
     let f = new Faker();
-    let page = http.get("http://datatau/submit");
+    let page = http.get("http://slackernews/submit");
   
     let res = page.submitForm({
       fields: {
@@ -42,10 +62,12 @@ class RandomUser {
         url: f.url(),
       }
     });
+
+    console.log("post creation result", res.status)
   }
 
   vote() {
-    let page = http.get("http://datatau/");
+    let page = http.get("http://slackernews/");
     let body = parseHTML(page.body);
   
     let posts = body.find('div.votearrow');
@@ -66,21 +88,21 @@ class RandomUser {
     const vote = JSON.stringify({
       id: post,
     });
-    let res = http.post("http://datatau/upvote-post", vote, {
+    let res = http.post("http://slackernews/upvote-post", vote, {
       headers: {
         'X-CSRFToken': cookiesForURL.csrftoken,
         'Content-Type': 'application/json'
       },
     });
     
-    console.log(res.status, res.body)
+    console.log("vote result", res.status, res.body)
   }
 }
 
 export function randomTitle() {
   let f = new Faker();
   const seed = Math.ceil(Math.random() * 10);
-  console.log(seed)
+
   switch(true) {
     case seed < 3:
       return f.quote()
@@ -88,14 +110,5 @@ export function randomTitle() {
       return f.sentence(Math.ceil(Math.random() * 10))
     default:
       return f.question()
-  }
-}
-
-export default function () {
-  let r = new RandomUser()
-  r.login()
-  r.createPost()
-  for(let i = 0; i < 5; i++) {
-    r.vote()
   }
 }

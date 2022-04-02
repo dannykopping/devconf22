@@ -9,4 +9,4 @@ docker-compose up -d slackernews grafana
 sleep 2
 
 # create sample users
-docker-compose run --rm k6 < k6/setup.js
+docker-compose run --rm k6 run /app/setup.js
