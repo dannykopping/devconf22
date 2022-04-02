@@ -55,6 +55,16 @@ services:
     networks:
       - app
 
+  mysqld_exporter:
+    container_name: mysqld_exporter
+    image: prom/mysqld-exporter
+    ports:
+      - 9104:9104
+    environment:
+      - DATA_SOURCE_NAME=root:rootpasswordmysql@(db:3306)/
+    networks:
+      - app
+
   read:
     container_name: loki-read
     image: grafana/loki:k88-c660a7e
@@ -231,6 +241,7 @@ services:
       - sql_exporter
       - alertmanager
       - node_exporter
+      - mysqld_exporter
     command: ['--log.level=debug', '--config.file=/etc/prometheus/prometheus.yml']
     volumes:
       - ./prometheus/config.yml:/etc/prometheus/prometheus.yml

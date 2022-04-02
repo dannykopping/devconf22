@@ -8,10 +8,11 @@ datasources:
       httpHeaderName1: "X-Scope-OrgID"
     secureJsonData:
       httpHeaderValue1: "tenant1"
+    isDefault: true
   - name: MySQL
     type: mysql
     url: db:3306
-    database: datatau
+    database: slackernews
     user: root
     jsonData:
       maxOpenConns: 0 # Grafana v5.4+
