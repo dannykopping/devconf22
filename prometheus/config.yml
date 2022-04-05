@@ -27,7 +27,7 @@ scrape_configs:
     static_configs:
       - targets:
         - 'node_exporter:9100'
-  - job_name: 'mysql_exporter'
+  - job_name: 'mysqld_exporter'
     static_configs:
       - targets:
         - 'mysqld_exporter:9104'

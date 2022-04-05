@@ -3,17 +3,16 @@ groups:
     interval: 1s
     rules:
 
-      - alert: Excessive Posting
-        expr: increase(posts_by_user[1m]) >= 5
+      - alert: Excessive Votes
+        expr: increase(votes_by_user[1m]) >= 20
         annotations:
-          summary: "{{ $labels.user_id }} has posted {{ $value }} posts in the last minute"
+          summary: "{{ $labels.user_id }} has cast {{ $value }} votes in the last minute"
         labels:
           severity: warning
 
-      - alert: SQL Exporter Down
-        expr: up{job="sql_exporter"} < 1
-        for: 5s
+      - alert: MySQL Down
+        expr: mysql_up < 1
         annotations:
-          summary: SQL Exporter is currently not running
+          summary: MySQL is currently not running
         labels:
           severity: critical
