@@ -30,4 +30,4 @@ Generate some random votes using `docker-compose run --rm k6 run --vus 20 --dura
   - Django
   - MySQL
 - Docker & Docker-Compose (containerisation)
-- Meross API for communicating with a Meross ML420 lightbulb
+- Meross API for communicating with a [Meross MSL420 lightbulb](https://www.meross.com/mTerminal/product/22/article/)

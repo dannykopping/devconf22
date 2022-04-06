@@ -4,7 +4,7 @@ groups:
     rules:
 
       - alert: Excessive Votes
-        expr: increase(votes_by_user[1m]) >= 20
+        expr: increase(votes_by_user[1m]) >= 10
         annotations:
           summary: "{{ $labels.user_id }} has cast {{ $value }} votes in the last minute"
         labels:
